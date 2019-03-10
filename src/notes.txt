@@ -1,0 +1,6 @@
+st = start time
+tm = trim
+sh = shape
+st = stroke
+fl = fill
+tr = transform
