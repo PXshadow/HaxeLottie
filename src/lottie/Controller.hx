@@ -143,20 +143,31 @@ class Controller
     }
     private function renderVert(v:Dynamic,shape:Sprite)
 	{
-        trace("render");
-		for (x in 0...v.i.length)
+        var length:Int = v.i.length;
+        var vertex = addPoint({x:v.v[0][0],y:v.v[0][1]});
+        shape.graphics.moveTo(vertex.x,vertex.y);
+		for (x in 1...length)
 		{
-            if(x == 0)
-            {
-                shape.graphics.moveTo(v.v[x][0],v.v[x][1]);
-            }else{
-                trace("V (" + Math.floor(v.v[x][0]) + "," + Math.floor(v.v[x][1]) + ") O (" + Math.floor(v.o[x][0]) + "," + Math.floor(v.o[x][1]) + ") I (" + Math.floor(v.i[x][0]) + "," + Math.floor(v.i[x][1]) + ")");
-                shape.graphics.cubicCurveTo(v.v[x][0],v.v[x][1],
-                v.i[x][0] == 0 ? v.v[x][0] : v.i[x][0],v.i[x][1] == 0 ? v.v[x][1] : v.i[x][1],
-                v.o[x][0] == 0 ? v.v[x][0] : v.o[x][0],v.o[x][1] == 0 ? v.v[x][1] : v.o[x][1]);
-            }
+            var prevVertex = addPoint({x:v.v[x - 1][0],y:v.v[x - 1][1]});
+            vertex = addPoint({x:v.v[x][0],y:v.v[x][1]});
+            var cp1 = addPoint(prevVertex,{x:v.o[x - 1][0],y:v.o[x - 1][1]});
+            var cp2 = addPoint(vertex,{x:v.i[x][0],y:v.i[x][1]});
+            shape.graphics.cubicCurveTo(cp1.x,cp1.y,cp2.x,cp2.y,vertex.x,vertex.y);
 		}
 	}
+    private function addPoint(p1:{x:Int,y:Int},p2:{x:Int,y:Int}=null)
+    {
+        if(p2 == null)
+        {
+            return {x:p1.x,y:p1.y};
+        }else{
+            return {x:p1.x + p2.x,y:p1.y + p2.y};
+        }
+    }
+    private function interp(a:Float,b:Float,frac:Float)
+    {
+        return a + (b-a)*frac;
+    }
     public function addAnimation(delay:Float,duration:Float,startTime:Int,data:Dynamic)
     {
         animationArray.push({delay: delay,duration: duration,startTime: startTime,data: data});
