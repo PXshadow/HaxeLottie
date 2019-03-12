@@ -17,7 +17,7 @@ class Main extends Sprite
 		//JsonClass.start("assets/docs/json/animation.json");
 		//JsonClass.start("assets/docs/json/shapes/shape.json");
 		
-		Assets.loadText("assets/vote.json").onComplete(function(string:String)
+		Assets.loadText("assets/submit.json").onComplete(function(string:String)
 		{
 			var lottie = new lottie.Lottie(string);
 		});

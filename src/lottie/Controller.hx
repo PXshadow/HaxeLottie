@@ -143,17 +143,40 @@ class Controller
     }
     private function renderVert(v:Dynamic,shape:Sprite)
 	{
+        if(v == null) return;
+        if (v.i == null) return;
         var length:Int = v.i.length;
-        var vertex = addPoint({x:v.v[0][0],y:v.v[0][1]});
-        shape.graphics.moveTo(vertex.x,vertex.y);
+        var vertex = addPoint({x:0,y:0});
+        var prevVertex = addPoint({x:0,y:0});
+        var cp1 = addPoint({x:0,y:0});
+        var cp2 = addPoint({x:0,y:0});
+        var closed:Bool = v.c;
+        var inital = addPoint({x:v.v[0][0],y:v.v[0][1]});
+        shape.graphics.moveTo(inital.x,inital.y);
 		for (x in 1...length)
 		{
-            var prevVertex = addPoint({x:v.v[x - 1][0],y:v.v[x - 1][1]});
+            prevVertex = addPoint({x:v.v[x - 1][0],y:v.v[x - 1][1]});
             vertex = addPoint({x:v.v[x][0],y:v.v[x][1]});
-            var cp1 = addPoint(prevVertex,{x:v.o[x - 1][0],y:v.o[x - 1][1]});
-            var cp2 = addPoint(vertex,{x:v.i[x][0],y:v.i[x][1]});
+            cp1 = addPoint(prevVertex,{x:v.o[x - 1][0],y:v.o[x - 1][1]});
+            cp2 = addPoint(vertex,{x:v.i[x][0],y:v.i[x][1]});
+            if(cp1 == inital && cp2 == vertex)
+            {
+                shape.graphics.lineTo(vertex.x,vertex.y);
+                continue;
+            }
             shape.graphics.cubicCurveTo(cp1.x,cp1.y,cp2.x,cp2.y,vertex.x,vertex.y);
 		}
+        
+        if(closed)
+        {
+            vertex = inital;
+            var x:Int = length;
+            prevVertex = addPoint({x:v.v[x - 1][0],y:v.v[x - 1][1]});
+            cp1 = addPoint(prevVertex,{x:v.o[x - 1][0],y:v.o[x - 1][1]});
+            cp2 = addPoint(vertex,{x:v.i[0][0],y:v.i[0][1]});
+            shape.graphics.cubicCurveTo(cp1.x,cp1.y,cp2.x,cp2.y,vertex.x,vertex.y);
+        }
+
 	}
     private function addPoint(p1:{x:Int,y:Int},p2:{x:Int,y:Int}=null)
     {
@@ -198,7 +221,8 @@ class Controller
     }
     public function setRotation(data:Dynamic)
     {
-        transform.rotation = data.value;
+        //trace("data " + data);
+       // transform.rotation = data.value;
     }
     public function setScale(data:Dynamic)
     {

@@ -29,7 +29,6 @@ class Lottie
     {
         for (layer in array)
         {
-            trace("layer");
             switch(layer.ty)
             {
                 case 0:
@@ -63,10 +62,8 @@ class Lottie
         parsePoints(obj,controller);
         //transform
         parseTransform(data.ks,controller);
-        trace("controller " + controller.transform);
         //shape
         var shapeArray:Array<Dynamic> = obj.shapes;
-        trace("array " + shapeArray.length);
         for (shape in shapeArray) parseShapes(shape.it,controller);
 
         var iterate = Reflect.copy(map.iterator());
@@ -80,9 +77,11 @@ class Lottie
     public function parseShapes(arrayDynamic:Dynamic,controller:Controller)
     {
         var array:Array<Dynamic> = arrayDynamic;
+        if(array == null)return;
         //trace("array " + array);
         for(obj in array)
         {
+            trace("ty " + obj.ty);
             switch(obj.ty)
 		    {
 			    case "sh":
@@ -115,11 +114,17 @@ class Lottie
 
 			    case "fl":
 			    //fill
-                controller.drawArray.unshift({type:4,
-                data:{
-                color:getPercentRGB(obj.c.k[0],obj.c.k[1],obj.c.k[2]),
-                alpha:1
-                }});
+                trace("obj " + obj);
+                if(obj.c.a == 1)
+                {
+
+                }else{
+                    controller.drawArray.unshift({type:4,
+                    data:{
+                    color:getPercentRGB(obj.c.k[0],obj.c.k[1],obj.c.k[2]),
+                    alpha:1
+                    }});
+                }
 			    case "gf":
 			    //gFill
                 var dataArray:Array<Float> = obj.g.k.k;
@@ -173,6 +178,9 @@ class Lottie
 			    case "gr":
 			    //group
                 trace("group");
+
+                case "tr":
+                trace("transform " + obj);
 		    }
         }
     }
@@ -203,7 +211,6 @@ class Lottie
     }
     public function parseValue(obj:Dynamic):Dynamic
     {
-        //trace(obj);
         if(obj.a)
         {
             //animated
@@ -216,6 +223,7 @@ class Lottie
         }else{
             //not animated
             var data:json.properties.Value = obj;
+            trace("data rotation " + data);
             return {value:obj.k,array:[]};
         }
     }
@@ -224,6 +232,7 @@ class Lottie
         //{ s => true, x => { a => 0, k => 320.6 }, y => { a => 0, k => 74.151 } }
         //trace("parse pos " + obj);
         //trace("obj " + obj);
+        trace("a " + obj.a);
         if(obj.a == 1)
         {
             return {x:0,y:0};
