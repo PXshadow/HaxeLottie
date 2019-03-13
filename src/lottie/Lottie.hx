@@ -1,5 +1,10 @@
 package lottie;
 
+import motion.Actuate;
+import lottie.Controller.TransformPoint;
+import json.properties.MultiDimensional;
+import json.properties.MultiDimensionalKeyframed;
+import lottie.Controller.TransformType;
 import openfl.display.GradientType;
 import json.helpers.Transform;
 import json.Animation;
@@ -9,9 +14,11 @@ import openfl.display.JointStyle;
 
 class Lottie
 {
-    public var frameRate:Int = 0;
+    private static var frameRate:Int = 60;
     public var grouped:Bool = false;
     public var map:Map<String,Controller> = new Map<String,Controller>();
+    private var setX:Int = 0;
+    private var setY:Int = 0;
 
     public function new(string:String)
     {
@@ -61,7 +68,7 @@ class Lottie
         //points
         parsePoints(obj,controller);
         //transform
-        parseTransform(data.ks,controller);
+        controller.transform = parseTransform(data.ks,controller);
         //shape
         var shapeArray:Array<Dynamic> = obj.shapes;
         for (shape in shapeArray) parseShapes(shape.it,controller);
@@ -71,7 +78,8 @@ class Lottie
         {
             var controller = iterate.next();
             openfl.Lib.current.addChildAt(controller.child,0);
-            controller.resetTransform();
+            controller.draw();
+            controller.scale();
         }
     }
     public function parseShapes(arrayDynamic:Dynamic,controller:Controller)
@@ -81,7 +89,7 @@ class Lottie
         //trace("array " + array);
         for(obj in array)
         {
-            trace("ty " + obj.ty);
+            //trace("ty " + obj.ty);
             switch(obj.ty)
 		    {
 			    case "sh":
@@ -89,32 +97,15 @@ class Lottie
 			    controller.drawArray.unshift({type:0,data:{vert:obj.ks}});
 			    case "rc":
 			    //rect
-                var control = new Controller();
-                control.create();
-                control.setPos(parsePos(obj.p));
-                control.setSize(parseDimension(obj.s));
-                control.setRotation(parseValue(obj.r));
-                //control.grouped = true;
-                controller.child.addChild(control.child);
-                control.drawArray.unshift({type:1,data:{}});
-                map.set(obj.nm,control);
+                trace("rect");
                 case "el":
 			    //ellipse
-                trace("data el " + obj);
-                var control = new Controller();
-                control.create();
-                control.setPos(parsePos(obj.p));
-                control.setSize(parseDimension(obj.s));
-                //control.grouped = true;
-                controller.child.addChild(control.child);
-                control.drawArray.unshift({type:2,data:{}});
-                map.set(obj.nm,control);
+                trace("ellipse");
 			    case "sr":
 			    //star
 
 			    case "fl":
 			    //fill
-                trace("obj " + obj);
                 if(obj.c.a == 1)
                 {
 
@@ -138,7 +129,6 @@ class Lottie
                     colorArray.push(getPercentRGB(dataArray[i + 1],dataArray[i + 2],dataArray[i + 3]));
                     alphaArray.push(alpha);
                 }
-                trace("obj " + obj);
                 controller.drawArray.unshift({type:5,
                 data:{
                 color:colorArray,
@@ -177,10 +167,11 @@ class Lottie
 			
 			    case "gr":
 			    //group
-                trace("group");
-
+                trace("group " + obj);
+                var controller = new Controller();
+                parseShapes(obj.it,controller);
                 case "tr":
-                trace("transform " + obj);
+                parseTransform(obj);
 		    }
         }
     }
@@ -190,74 +181,112 @@ class Lottie
         if(obj.ip != null) controller.inPoint = Math.floor(obj.ip);
         if(obj.op != null) controller.outPoint = Math.floor(obj.op);
     }
-    public function parseTransform(obj:Dynamic,controller:Controller)
+    public function parseTransform(obj:Dynamic,controller:Controller=null):TransformType
     {
-        var data:Transform = obj;
-        //trace("anchor");
-        if(data.a != null)  controller.setAnchor(parseDimension(data.a));
-        //trace("pos");
-        if (data.p != null) controller.setPos(parsePos(data.p));
-        //trace("scale");
-        if (data.s != null) controller.setScale(parseDimension(data.s));
-        //trace("rotation");
-        if (data.r != null) controller.setRotation(parseValue(data.r));
-        //trace("opacity");
-        if (data.o != null) controller.setOpacity(parseValue(data.o));
-        //trace("x");
-        if (data.px != null) controller.setPosX(parseValue(data.px));
-        //trace("y");
-        if (data.py != null) controller.setPosY(parseValue(data.py));
-        //not implemented: pz, sk, sa
-    }
-    public function parseValue(obj:Dynamic):Dynamic
-    {
-        if(obj.a)
+        var anchor:TransformPoint = {x:0,y:0,z:0};
+        var scale:TransformPoint = {x:1,y:1,z:1};
+        var pos:TransformPoint = {x:0,y:0,z:0};
+        var data:Dynamic = obj.a;
+        var alpha:Float = 1;
+        if(data.a == 1)
         {
-            //animated
-            var data:json.properties.ValueKeyframed = obj;
-            for(frame in data.k)
-            {
-                //trace("frame " + frame);
-            }
-            return {value:0,array:[]};
+            //animated anchor
+            trace("animated 0");
         }else{
-            //not animated
-            var data:json.properties.Value = obj;
-            trace("data rotation " + data);
-            return {value:obj.k,array:[]};
+            anchor = parseDimension(data);
+            trace("anchor " + anchor);
+        }
+        data = obj.p;
+        if(data.a == 1)
+        {
+            //animated pos
+            trace("animated 1");
+        }else{
+            pos = parseDimension(data);
+        }
+        data = obj.s;
+        if(data.a == 1)
+        {
+            parseDimensionAnimation(data,controller,{scaleX:0,scaleY:0},0.01);
+        }else{
+            scale = point100(parseDimension(data));
+        }
+        data = obj.o;
+        
+        if(data.a == 1)
+        {
+            //animated opacity
+            trace("animated 3");
+        }else{
+            alpha = parseValue(data)/100;
+        }
+        var trans:TransformType = {pos: pos,scale: scale,anchor: anchor,rotation: 0,alpha:alpha};
+        return trans;
+    }
+    private static function parseDimensionAnimation(data:Dynamic,controller:Controller,property:Dynamic,multiply:Float=1)
+    {
+        //animated scale
+        var frame:Array<json.properties.OffsetKeyframe> = data.k;
+        trace("frame length " + frame.length);
+        for(i in 0...frame.length - 1)
+        {
+            var delay = frame[i].t/frameRate;
+            var scaleX:Float = frame[i].e[0]/100;
+            var scaleY:Float = frame[i].e[1]/100;
+            var duration:Float = (frame[i + 1].t - frame[i].t)/frameRate;
+            //trace("scale " + scaleX + " y " + scaleY + " delay " + delay + " duration " + duration);
+            var valueArray:Array<Float> = frame[i].e;
+            var field:Array<String> = Reflect.fields(property);
+            for(j in 0...valueArray.length)
+            {
+                if(field[j] != null)
+                {
+                    Reflect.setField(property,field[j],valueArray[j] * multiply);
+                }
+            }
+            Reflect.copy(property);
+            trace("prop " + property + " delay " + delay + " duration " + duration);
+            controller.animationArray.push({delay:delay,duration:duration,property:Reflect.copy(property)});
         }
     }
-    public function parsePos(obj:Dynamic):Dynamic
+    private static function point100(value:TransformPoint):TransformPoint
     {
-        //{ s => true, x => { a => 0, k => 320.6 }, y => { a => 0, k => 74.151 } }
-        //trace("parse pos " + obj);
-        //trace("obj " + obj);
-        trace("a " + obj.a);
-        if(obj.a == 1)
-        {
-            return {x:0,y:0};
-        }else{
-            if(obj.k != null)
-            {
-                return {x:obj.k[0],y:obj.k[1]};
-            }else{
-                return {x:obj.x.k,y:obj.y.k};
-            }
-        }
+        if(value.x != null) value.x /= 100;
+        if (value.y != null) value.y /= 100;
+        if (value.z != null) value.z /= 100;
+        return value;
     }
-    public function parseDimension(obj:Dynamic):Dynamic
+    private static function parseValue(data:Dynamic):Float
     {
-        //trace("Dim " + obj);
-        if(obj.a != 1)
+        return data.k;
+    }
+    private static function parseDimension(data:Dynamic):TransformPoint
+    {
+        if(data.k == null)
         {
-            //not animated
-            var data:json.properties.MultiDimensional;
-            return {array:obj.k};
+            var pX:Float = 0;
+            var pY:Float = 0;
+            if(data.x != null)
+            {
+                if(data.x.a == 1)
+                {
+                    //animated x
+                }else{
+                    pX = data.x.k;
+                }
+            }
+            if(data.y != null)
+            {
+                if(data.y.a == 1)
+                {
+                    //animated y
+                }else{
+                    pY = data.y.k;
+                }
+            }
+            return {x:pX,y:pY,z:0};
         }else{
-            //animated
-            var data:json.properties.MultiDimensionalKeyframed;
-            return {array:[]};
-
+            return {x:data.k[0],y:data.k[1],z:data.k[2]};
         }
     }
 

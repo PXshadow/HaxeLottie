@@ -1,5 +1,6 @@
 package lottie;
 
+import motion.Actuate;
 import openfl.geom.Matrix;
 import openfl.events.MouseEvent;
 import openfl.display.LineScaleMode;
@@ -19,9 +20,10 @@ class Controller
     public var animationArray:Array<AnimationType> = [];
     public var drawArray:Array<DrawType> = [];
     public var setGradient:Dynamic = null;
+    public var playing:Bool = false;
     public function new()
     {
-        transform = {x:0,y:0,scaleX:1,scaleY:1,rotation:0,anchorX:0,anchorY:0,width:-1,height:-1};
+        transform = {anchor: {x:0,y:0,z:0},scale: {x:1,y:1,z:1},pos: {x:0,y:0,z:0},rotation: 0,alpha:1};
     }
     public function create()
     {
@@ -44,33 +46,68 @@ class Controller
             child.scaleX += e.delta * 0.1;
             child.scaleY += e.delta * 0.1;
         });
+        child.addEventListener(MouseEvent.CLICK,function(_)
+        {
+            animate();
+        });
 
         child.cacheAsBitmap = true;
-        child.graphics.beginFill(0xFFFFFF,1);
+        child.graphics.beginFill(0xFFFFFF);
         child.graphics.drawRect(0,0,5,5);
         child.graphics.endFill();
     }
-    public function resetTransform()
+    public function play()
     {
-        if(transform == null)return;
-        child.graphics.beginFill(0,0);
-        child.graphics.drawRect(0,0,transform.width,transform.height);
-        child.x = transform.x;
-        child.y = transform.y;
-        draw(transform.anchorX,transform.anchorY);
-        child.scaleX = transform.scaleX;
-        child.scaleY = transform.scaleY;
-        child.rotation = transform.rotation;
+        if(playing) return;
+        playing = true;
+        animate();
     }
-    public function draw(anchorX:Float,anchorY:Float)
+    public function stop()
     {
-        var i:Int = 0;
+        if (!playing) return;
+        playing = false;
+
+    }
+    public function reset()
+    {
+        playing = false;
+        scale();
+        draw();
+    }
+    public function scale()
+    {
+        if(transform == null) return;
+        child.scaleX = transform.scale.x;
+        child.scaleY = transform.scale.y;
+    }
+    public function draw()
+    {
         for(draw in drawArray)
         {
-            command(draw,i++);
+            command(draw);
         }
     }
-    public function command(draw:DrawType,i:Int=0)
+    public function animate()
+    {
+        for(animation in animationArray)
+        {
+            trace("animation " + animation);   
+            if(animation.property.scaleX != null && animation.property.scaleY != null)
+            {
+                var scaleX:Float = animation.property.scaleX;
+                var scaleY:Float = animation.property.scaleY;
+                var shiftX:Float = -(child.width * scaleX - child.width)/2;
+                var shiftY:Float = -(child.height * scaleY - child.height)/2;
+                animation.property = {scaleX: scaleX,scaleY: scaleY,x:child.x + shiftX,y:child.y + shiftY};
+            }
+            motion.Actuate.tween(child,animation.duration,animation.property,false).delay(animation.delay).onComplete(function(_)
+            {
+                trace("finish");
+            });
+        }
+        //motion.Actuate.tween(child,1,{y:300}).delay(1);
+    }
+    public function command(draw:DrawType)
     {
         switch(draw.type)
         {
@@ -85,19 +122,10 @@ class Controller
             }
             case 1:
             //rect
-            child.graphics.beginFill(0xFF0000);
-            if(transform.width >= 0 && transform.height >= 0) 
-            {
-                child.graphics.drawRect(0,0,transform.width,transform.height);
-            }
-            child.graphics.endFill();
+            
             case 2:
             //ellipse
-            child.graphics.beginFill(0xFF0000);
-            if(transform.width >= 0 && transform.height >= 0)
-            {
-                child.graphics.drawEllipse(0,0,transform.width,transform.height);
-            }
+
             case 3:
             //star
 
@@ -107,7 +135,7 @@ class Controller
             case 5:
             //gFill
             var mat = new Matrix();
-            mat.createGradientBox(transform.width,transform.height);
+            mat.createGradientBox(0,0);
             child.graphics.beginGradientFill(draw.data.type,draw.data.color,draw.data.alpha,draw.data.ratio,mat);
 
             case 6:
@@ -191,53 +219,8 @@ class Controller
     {
         return a + (b-a)*frac;
     }
-    public function addAnimation(delay:Float,duration:Float,startTime:Int,data:Dynamic)
-    {
-        animationArray.push({delay: delay,duration: duration,startTime: startTime,data: data});
-    }
-    public function setOpacity(data:Dynamic)
-    {
-
-    }
-    public function setAnchor(data:Dynamic)
-    {
-
-    }
-    public function setPos(data:Dynamic)
-    {
-        if(data.x == null)
-        {
-            transform.x = data.array[0];
-            transform.y = data.array[1];
-        }else{
-            transform.x = data.x;
-            transform.y = data.y;
-        }
-    }
-    public function setSize(data:Dynamic)
-    {
-        transform.width = data.array[0];
-        transform.height = data.array[1];
-    }
-    public function setRotation(data:Dynamic)
-    {
-        //trace("data " + data);
-       // transform.rotation = data.value;
-    }
-    public function setScale(data:Dynamic)
-    {
-        //transform.scaleX = data.k[0];
-        //transform.scaleY = data.k[1];
-    }
-    public function setPosX(data:Dynamic)
-    {
-
-    }
-    public function setPosY(data:Dynamic)
-    {
-
-    }
 }
-typedef TransformType = {x:Float,y:Float,scaleX:Float,scaleY:Float,rotation:Float,anchorX:Float,anchorY:Float,width:Float,height:Float}
-typedef AnimationType = {delay:Float,duration:Float,startTime:Int,data:Dynamic}
+typedef TransformType = {pos:TransformPoint,scale:TransformPoint,anchor:TransformPoint,rotation:Float,alpha:Float}
+typedef TransformPoint = {x:Float,y:Float,z:Float}
+typedef AnimationType = {delay:Float,duration:Float,property:Dynamic}
 typedef DrawType = {type:Int,data:Dynamic}
