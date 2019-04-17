@@ -91,7 +91,7 @@ class Controller
     {
         for(animation in animationArray)
         {
-            trace("animation " + animation);   
+            //trace("animation " + animation);   
             if(animation.property.scaleX != null && animation.property.scaleY != null)
             {
                 var scaleX:Float = animation.property.scaleX;
@@ -102,7 +102,7 @@ class Controller
             }
             motion.Actuate.tween(child,animation.duration,animation.property,false).delay(animation.delay).onComplete(function(_)
             {
-                trace("finish");
+                //trace("finish");
             });
         }
         //motion.Actuate.tween(child,1,{y:300}).delay(1);
@@ -135,7 +135,7 @@ class Controller
             case 5:
             //gFill
             var mat = new Matrix();
-            mat.createGradientBox(0,0);
+            mat.createGradientBox(100,100);
             child.graphics.beginGradientFill(draw.data.type,draw.data.color,draw.data.alpha,draw.data.ratio,mat);
 
             case 6:

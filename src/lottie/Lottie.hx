@@ -171,6 +171,7 @@ class Lottie
                 var controller = new Controller();
                 parseShapes(obj.it,controller);
                 case "tr":
+                trace("tr");
                 parseTransform(obj);
 		    }
         }
