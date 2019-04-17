@@ -5,13 +5,9 @@ import lottie.Controller.TransformPoint;
 import json.properties.MultiDimensional;
 import json.properties.MultiDimensionalKeyframed;
 import lottie.Controller.TransformType;
-import openfl.display.GradientType;
 import json.helpers.Transform;
 import json.Animation;
 import haxe.Json;
-import openfl.display.CapsStyle;
-import openfl.display.JointStyle;
-
 class Lottie
 {
     private static var frameRate:Int = 60;
@@ -19,10 +15,15 @@ class Lottie
     public var map:Map<String,Controller> = new Map<String,Controller>();
     private var setX:Int = 0;
     private var setY:Int = 0;
+    private var finish:LottieType->Void;
+    private var lottie:LottieType;
+    private var index:Int = -1;
 
-    public function new(string:String)
+    public function new(data:String,finish:LottieType->Void)
     {
-        var data:Animation = Json.parse(string);
+        this.finish = finish;
+        lottie = {draw:[],animation:[],fps:60};
+        var data:Animation = Json.parse(data);
         trace("inital");
         parseAnimation(data);
     }
@@ -31,11 +32,14 @@ class Lottie
         //render
         //setStage(data.w,data.h);
         parseLayers(data.layers);
+        trace("index " + index);
+        finish(lottie);
     }
     public function parseLayers(array:Array<Dynamic>)
     {
         for (layer in array)
         {
+            trace("layer");
             switch(layer.ty)
             {
                 case 0:
@@ -61,32 +65,28 @@ class Lottie
     }
     public function parseLayerShape(obj:Dynamic)
     {
-        var controller = new Controller();
+        /*var controller = new Controller();
         controller.create();
-        map.set(obj.nm,controller);
+        map.set(obj.nm,controller);*/
+        index ++;
         var data:json.layers.Shape = obj;
         //points
-        parsePoints(obj,controller);
+        parsePoints(obj);
         //transform
-        controller.transform = parseTransform(data.ks,controller);
+        //controller.transform = parseTransform(data.ks,lottie.draw.length);
         //shape
         var shapeArray:Array<Dynamic> = obj.shapes;
-        for (shape in shapeArray) parseShapes(shape.it,controller);
-
-        var iterate = Reflect.copy(map.iterator());
-        while(iterate.hasNext())
+        for (shape in shapeArray) 
         {
-            var controller = iterate.next();
-            openfl.Lib.current.addChildAt(controller.child,0);
-            controller.draw();
-            controller.scale();
+            parseShapes(shape.it);
         }
     }
-    public function parseShapes(arrayDynamic:Dynamic,controller:Controller)
+    public function parseShapes(arrayDynamic:Dynamic)
     {
         var array:Array<Dynamic> = arrayDynamic;
         if(array == null)return;
         //trace("array " + array);
+        lottie.draw[index] = [];
         for(obj in array)
         {
             //trace("ty " + obj.ty);
@@ -94,13 +94,15 @@ class Lottie
 		    {
 			    case "sh":
 			    //shape
-			    controller.drawArray.unshift({type:0,data:{vert:obj.ks}});
+                //trace("ks " + obj.ks);
+                lottie.draw[index].unshift(DrawCommand.Vert(obj.ks.k.i,obj.ks.k.o,obj.ks.k.v,obj.ks.k.c));
+			    //controller.drawArray.unshift({type:0,data:{vert:obj.ks}});
 			    case "rc":
 			    //rect
-                trace("rect");
+                //trace("rect");
                 case "el":
 			    //ellipse
-                trace("ellipse");
+                //trace("ellipse");
 			    case "sr":
 			    //star
 
@@ -110,55 +112,33 @@ class Lottie
                 {
 
                 }else{
-                    controller.drawArray.unshift({type:4,
+                    /*controller.drawArray.unshift({type:4,
                     data:{
                     color:getPercentRGB(obj.c.k[0],obj.c.k[1],obj.c.k[2]),
                     alpha:1
-                    }});
+                    }});*/
                 }
 			    case "gf":
 			    //gFill
-                var dataArray:Array<Float> = obj.g.k.k;
-                var colorArray:Array<UInt> = [];
-                var ratioArray:Array<Int> = [];
-                var alphaArray:Array<Float> = [];
-                var alpha:Float = 1;
-                for(i in 0...Math.floor(dataArray.length/4))
+                var array:Array<Float> = obj.g.k.k;
+                var color:Array<UInt> = [];
+                var ratio:Array<Int> = [];
+                var alpha:Array<Float> = [];
+                for(i in 0...Std.int(array.length/4))
                 {
-                    ratioArray.push(Math.floor(dataArray[i] * 255));
-                    colorArray.push(getPercentRGB(dataArray[i + 1],dataArray[i + 2],dataArray[i + 3]));
-                    alphaArray.push(alpha);
+                    ratio.push(Std.int(array[i] * 255));
+                    color.push(getPercentRGB(array[i + 1],array[i + 2],array[i + 3]));
+                    alpha.push(1);
                 }
-                controller.drawArray.unshift({type:5,
-                data:{
-                color:colorArray,
-                ratio:ratioArray, 
-                type: obj.t == 1 ? GradientType.LINEAR : GradientType.RADIAL,
-                alpha: alphaArray,
-                }});
+                lottie.draw[index].unshift(DrawCommand.GradientFill(color,ratio,alpha,obj.t));
 			    case "gs":
 			    //gStroke
 
 			    case "st":
 			    //stroke
-                var color = getPercentRGB(obj.c.k[0], obj.c.k[1], obj.c.k[2]);
-		        var opacity = obj.o.k / 100;
-		        var stroke = obj.w.k;
-
-		        var cap:CapsStyle = obj.lc;
-		        if (obj.lc == 1) cap = CapsStyle.SQUARE;
-		        if (obj.lc == 0) cap = CapsStyle.ROUND;
-		        var join:JointStyle = obj.lj;
-		        var miter:Int = obj.ml;
-                controller.drawArray.unshift({type:7,
-                data:{
-                color:color,
-                alpha:opacity,
-                stroke:stroke,
-                cap:cap,
-                join:join,
-                miter:miter
-                }});
+                lottie.draw[index].unshift(
+                    DrawCommand.Stroke(obj.lc,obj.lj,obj.ml,getPercentRGB(obj.c.k[0], obj.c.k[1], obj.c.k[2]),obj.o.k / 100)
+                );
 			    case "mm":
 			    //merge
 			
@@ -167,22 +147,24 @@ class Lottie
 			
 			    case "gr":
 			    //group
-                trace("group " + obj);
-                var controller = new Controller();
-                parseShapes(obj.it,controller);
+                //trace("group " + obj);
+                //var controller = new Controller();
+                index ++;
+                trace("group");
+                parseShapes(obj.it);
                 case "tr":
-                trace("tr");
+                //trace("tr");
                 parseTransform(obj);
 		    }
         }
     }
     //when layer/item pops into and then out of existance
-    public function parsePoints(obj:Dynamic,controller:Controller)
+    public function parsePoints(obj:Dynamic)
     {
-        if(obj.ip != null) controller.inPoint = Math.floor(obj.ip);
-        if(obj.op != null) controller.outPoint = Math.floor(obj.op);
+        //if(obj.ip != null) controller.inPoint = Math.floor(obj.ip);
+        //if(obj.op != null) controller.outPoint = Math.floor(obj.op);
     }
-    public function parseTransform(obj:Dynamic,controller:Controller=null):TransformType
+    public function parseTransform(obj:Dynamic):TransformType
     {
         var anchor:TransformPoint = {x:0,y:0,z:0};
         var scale:TransformPoint = {x:1,y:1,z:1};
@@ -192,10 +174,10 @@ class Lottie
         if(data.a == 1)
         {
             //animated anchor
-            trace("animated 0");
+
         }else{
             anchor = parseDimension(data);
-            trace("anchor " + anchor);
+            
         }
         data = obj.p;
         if(data.a == 1)
@@ -208,7 +190,7 @@ class Lottie
         data = obj.s;
         if(data.a == 1)
         {
-            parseDimensionAnimation(data,controller,{scaleX:0,scaleY:0},0.01);
+            //parseDimensionAnimation(data,controller,{scaleX:0,scaleY:0},0.01);
         }else{
             scale = point100(parseDimension(data));
         }
