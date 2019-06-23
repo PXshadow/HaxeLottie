@@ -1,18 +1,25 @@
 package lottie;
 
 import motion.Actuate;
-import lottie.Controller.TransformPoint;
+//import lottie.Controller.TransformPoint;
 import json.properties.MultiDimensional;
 import json.properties.MultiDimensionalKeyframed;
-import lottie.Controller.TransformType;
+//import lottie.Controller.TransformType;
 import json.helpers.Transform;
 import json.Animation;
 import haxe.Json;
+
+typedef  LottieType = {draw:Array<Array<DrawCommand>>,animation:Array<Array<AnimationCommand>>,fps:Int,size:Array<TransformType>}
+typedef TransformType = {pos:TransformPoint,scale:TransformPoint,anchor:TransformPoint,rotation:Float,alpha:Float}
+typedef TransformPoint = {x:Float,y:Float,z:Float}
+typedef AnimationType = {delay:Float,duration:Float,property:Dynamic}
+typedef DrawType = {type:Int,data:Dynamic}
+
 class Lottie
 {
     private static var frameRate:Int = 60;
     public var grouped:Bool = false;
-    public var map:Map<String,Controller> = new Map<String,Controller>();
+    //public var map:Map<String,Controller> = new Map<String,Controller>();
     private var setX:Int = 0;
     private var setY:Int = 0;
     private var finish:LottieType->Void;
@@ -22,7 +29,7 @@ class Lottie
     public function new(data:String,finish:LottieType->Void)
     {
         this.finish = finish;
-        lottie = {draw:[],animation:[],fps:60};
+        lottie = {draw:[],animation:[],fps:60,size:[]};
         var data:Animation = Json.parse(data);
         trace("inital");
         parseAnimation(data);
@@ -76,6 +83,7 @@ class Lottie
         //controller.transform = parseTransform(data.ks,lottie.draw.length);
         //shape
         var shapeArray:Array<Dynamic> = obj.shapes;
+        shapeArray.reverse();
         for (shape in shapeArray) 
         {
             parseShapes(shape.it);
@@ -108,6 +116,7 @@ class Lottie
 
 			    case "fl":
 			    //fill
+                trace("fl");
                 if(obj.c.a == 1)
                 {
 
@@ -117,6 +126,9 @@ class Lottie
                     color:getPercentRGB(obj.c.k[0],obj.c.k[1],obj.c.k[2]),
                     alpha:1
                     }});*/
+                    var color:UInt = getPercentRGB(obj.c.k[0],obj.c.k[1],obj.c.k[2]);
+                    trace("fill color " + color);
+                    lottie.draw[index].unshift(DrawCommand.Fill(color,0.5));
                 }
 			    case "gf":
 			    //gFill
@@ -130,7 +142,7 @@ class Lottie
                     color.push(getPercentRGB(array[i + 1],array[i + 2],array[i + 3]));
                     alpha.push(1);
                 }
-                lottie.draw[index].unshift(DrawCommand.GradientFill(color,ratio,alpha,obj.t));
+                lottie.draw[index].unshift(DrawCommand.GradientFill(obj.t,color,alpha,ratio));
 			    case "gs":
 			    //gStroke
 
@@ -206,7 +218,7 @@ class Lottie
         var trans:TransformType = {pos: pos,scale: scale,anchor: anchor,rotation: 0,alpha:alpha};
         return trans;
     }
-    private static function parseDimensionAnimation(data:Dynamic,controller:Controller,property:Dynamic,multiply:Float=1)
+    private static function parseDimensionAnimation(data:Dynamic,property:Dynamic,multiply:Float=1)
     {
         //animated scale
         var frame:Array<json.properties.OffsetKeyframe> = data.k;
@@ -229,7 +241,6 @@ class Lottie
             }
             Reflect.copy(property);
             trace("prop " + property + " delay " + delay + " duration " + duration);
-            controller.animationArray.push({delay:delay,duration:duration,property:Reflect.copy(property)});
         }
     }
     private static function point100(value:TransformPoint):TransformPoint

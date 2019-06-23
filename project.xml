@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+	
+	<meta title="HaxeLottie" package="com.project.HaxeLottie" version="1.0.0" company="" />
+	<app main="Main" path="bin" file="HaxeLottie" />
+	<window background="0" width="1280" height="720" fps="60" vsync="true" hardware="true" depth-buffer="false" stencil-buffer="false" />
+	<source path="src" />
+	<haxelib name="openfl" />
+	<haxelib name="actuate"/>
+	<haxelib name="svg"/>
+	<haxelib name="hxcpp-debug-server" unless="html5"/>
+	<haxelib name="hscript" unless="html5"/>
+	<!--Load Map-->
+	<assets path="assets"/> <!--embed="false"/>-->
+</project>

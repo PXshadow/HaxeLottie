@@ -1,8 +1,9 @@
 package;
+import openfl.display.GradientType;
 import openfl.display.Graphics;
 import openfl.events.MouseEvent;
 import lottie.DrawCommand;
-import lottie.LottieType;
+import lottie.Lottie.LottieType;
 import openfl.Assets;
 import openfl.display.Sprite;
 
@@ -16,6 +17,17 @@ class Main extends Sprite
 	public function new() 
 	{
 		super();
+		mouseEnabled = true;
+		buttonMode = true;
+		//drag test
+		addEventListener(MouseEvent.MOUSE_DOWN,function(_)
+		{
+			startDrag();
+		});
+		addEventListener(MouseEvent.MOUSE_UP,function(_)
+		{
+			stopDrag();
+		});
 		//var animation = new Lottie("assets/vote.json");
 		//var anim = new Animation();
 		//JsonClass.start("assets/docs/json/animation.json");
@@ -28,26 +40,32 @@ class Main extends Sprite
 				for(i in 0...data.draw.length)
 				{
 					var sprite = new Sprite();
-					sprite.cacheAsBitmap = true;
+					sprite.mouseEnabled = false;
+					//sprite.buttonMode = true;
+					//sprite.cacheAsBitmap = true;
 					addChild(sprite);
-					sprite.addEventListener(MouseEvent.MOUSE_DOWN,function(_)
-					{
-						sprite.startDrag();
-					});
-					sprite.addEventListener(MouseEvent.MOUSE_UP,function(_)
-					{
-						sprite.stopDrag();
-					});
 					for(draw in data.draw[i])
 					{
 						switch(draw.getName())
 						{
 							case "Vert":
-							var params = draw.getParameters();
+							var param = draw.getParameters();
 							//sprite.graphics.beginFill(0xFFFFFF,0.5);
-							renderVert({i:params[0],o:params[1],v:params[2],c:params[3]},sprite.graphics);
+							renderVert({i:param[0],o:param[1],v:param[2],c:param[3]},sprite.graphics);
 							case "GradientFill":
 							var mat = new openfl.geom.Matrix();
+							var param = draw.getParameters();
+							sprite.graphics.beginGradientFill(
+								param[0] == 0 ? LINEAR : RADIAL,
+								param[1],
+								param[2],
+								param[3],
+								mat
+							);
+							case "Fill":
+							trace("fill");
+							var param = draw.getParameters();
+							sprite.graphics.beginFill(param[0],param[1]);
 							
 						}
 					}
@@ -60,6 +78,7 @@ class Main extends Sprite
 	{
         if(v == null) return;
         if (v.i == null) return;
+		trace("render vert");
         var length:Int = v.i.length;
         var vertex = addPoint({x:0,y:0});
         var prevVertex = addPoint({x:0,y:0});

@@ -3,7 +3,7 @@ package lottie;
 enum DrawCommand 
 {
     Fill(color:UInt,alpha:Float);
-    GradientFill(color:Array<UInt>,ratio:Array<Int>,alpha:Array<Float>,type:Int);
+    GradientFill(type:Int,color:Array<UInt>,alpha:Array<Float>,ratio:Array<Int>);
     Stroke(cap:Int,joint:Int,miter:Int,color:UInt,alpha:Float);
     Vert(i:Array<Float>,o:Array<Float>,v:Array<Float>,c:Bool);
 }
